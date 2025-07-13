@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">NANA</string>
+    <string name="notes">Notes</string>
+    <string name="routines">Routines</string>
+    <string name="schedule">Schedule</string>
+    <string name="finance">Finance</string>
+</resources>
