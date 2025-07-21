@@ -1,3 +1,11 @@
+<div align="center">
+
+<img width="" src="fastlane/metadata/android/en-US/images/icon.png"  width=160 height=160  align="center">
+
+# Not Another Notes App
+
+### An Android App That Does More And Takes Notes
+</div>
 
 ### General UI
 
