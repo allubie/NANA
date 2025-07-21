@@ -13,6 +13,23 @@
 * AMOLED dark theme (true black backgrounds for battery efficiency).
 * Used material-design-icons.
 
+  ## 📱 Screenshots
+
+<div align="center">
+<div>
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width="30%" />
+</div>
+</div>
+
+<br>
+
 ### Navigation Structure
 
 * **Bottom navigation bar** with four main sections:
