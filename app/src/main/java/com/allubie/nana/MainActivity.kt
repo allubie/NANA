@@ -3,56 +3,45 @@ package com.allubie.nana
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.allubie.nana.ui.NANAApp
-import com.allubie.nana.ui.settings.SettingsViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.allubie.nana.navigation.NANANavigation
 import com.allubie.nana.ui.theme.NANATheme
-import dagger.hilt.android.AndroidEntryPoint
+import com.allubie.nana.ui.viewmodel.SettingsViewModel
+import com.allubie.nana.ui.viewmodel.SettingsViewModelFactory
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    private val settingsViewModel: SettingsViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            // Collect theme preferences
-            val themePreferences by settingsViewModel.themePreferences.collectAsStateWithLifecycle()
-
-            // Determine theme based on preferences
-            val systemDarkTheme = isSystemInDarkTheme()
-            val darkTheme = if (themePreferences.followSystemTheme) systemDarkTheme else themePreferences.isDarkTheme
-            val amoledTheme = themePreferences.isAmoledTheme
-
-            NANATheme(
-                darkTheme = darkTheme,
-                amoledTheme = amoledTheme
-            ) {
+            val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(this@MainActivity))
+            val currentTheme by settingsViewModel.currentTheme.collectAsState()
+            
+            NANATheme(themeMode = currentTheme, dynamicColor = true) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NANAApp(
-                        isDarkTheme = darkTheme,
-                        isAmoledTheme = amoledTheme,
-                        onThemeChanged = { isDark, isAmoled ->
-                            // Update theme preferences when changed from the UI
-                            if (!themePreferences.followSystemTheme) {
-                                settingsViewModel.setDarkTheme(isDark)
-                            }
-                            settingsViewModel.setAmoledTheme(isAmoled)
-                        }
-                    )
+                    NANANavigation()
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun NANAAppPreview() {
+    NANATheme {
+        NANANavigation()
     }
 }

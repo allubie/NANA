@@ -1,51 +1,53 @@
 package com.allubie.nana.data.repository
 
 import com.allubie.nana.data.dao.NoteDao
-import com.allubie.nana.data.entity.NoteEntity
-import com.allubie.nana.ui.notes.Note
-import com.allubie.nana.ui.notes.NoteColor
+import com.allubie.nana.data.entity.Note
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
-@Singleton
 class NoteRepository(private val noteDao: NoteDao) {
     
-    val allNotes: Flow<List<Note>> = noteDao.getAllNotes().map { noteEntities ->
-        noteEntities.map { entity -> entity.toNote() }
-    }
+    fun getAllActiveNotes(): Flow<List<Note>> = noteDao.getAllActiveNotes()
     
-    suspend fun insertNote(note: Note) {
-        noteDao.insertNote(note.toEntity())
+    fun getArchivedNotes(): Flow<List<Note>> = noteDao.getArchivedNotes()
+    
+    fun getDeletedNotes(): Flow<List<Note>> = noteDao.getDeletedNotes()
+    
+    suspend fun getNoteById(id: Long): Note? = noteDao.getNoteById(id)
+    
+    fun searchNotes(query: String): Flow<List<Note>> = noteDao.searchNotes(query)
+    
+    fun getNotesByCategory(category: String): Flow<List<Note>> = noteDao.getNotesByCategory(category)
+    
+    fun getAllCategories(): Flow<List<String>> = noteDao.getAllCategories()
+    
+    suspend fun insertNote(note: Note): Long {
+        val now = Clock.System.now().toString() // Use ISO instant format
+        return noteDao.insertNote(note.copy(createdAt = now, updatedAt = now))
     }
     
     suspend fun updateNote(note: Note) {
-        noteDao.updateNote(note.toEntity())
+        val now = Clock.System.now().toString() // Use ISO instant format
+        noteDao.updateNote(note.copy(updatedAt = now))
     }
     
-    suspend fun deleteNote(note: Note) {
-        noteDao.deleteNote(note.toEntity())
-    }
+    suspend fun deleteNote(note: Note) = noteDao.deleteNote(note)
     
-    // Extension functions to convert between domain and data layer
-    private fun Note.toEntity(): NoteEntity {
-        return NoteEntity(
-            id = id,
-            title = title,
-            content = content,
-            timestamp = timestamp,
-            colorName = color.name
-        )
-    }
+    suspend fun togglePinStatus(id: Long, isPinned: Boolean) = noteDao.updatePinStatus(id, isPinned)
     
-    private fun NoteEntity.toNote(): Note {
-        return Note(
-            id = id,
-            title = title,
-            content = content,
-            timestamp = timestamp,
-            color = try { NoteColor.valueOf(colorName) } catch (e: Exception) { NoteColor.Default }
-        )
-    }
+    suspend fun toggleArchiveStatus(id: Long, isArchived: Boolean) = noteDao.updateArchiveStatus(id, isArchived)
+    
+    suspend fun moveToTrash(id: Long) = noteDao.updateDeleteStatus(id, true)
+    
+    suspend fun restoreFromTrash(id: Long) = noteDao.updateDeleteStatus(id, false)
+    
+    suspend fun getAllNotesForExport(): List<Note> = noteDao.getAllNotes()
+    
+    suspend fun deleteAllNotes() = noteDao.deleteAllNotes()
+    
+    suspend fun permanentlyDeleteAllDeletedNotes() = noteDao.permanentlyDeleteAllDeletedNotes()
+    
+    suspend fun permanentlyDeleteNote(id: Long) = noteDao.permanentlyDeleteNote(id)
 }

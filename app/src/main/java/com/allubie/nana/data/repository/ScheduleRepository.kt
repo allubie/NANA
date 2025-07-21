@@ -1,92 +1,112 @@
 package com.allubie.nana.data.repository
 
-import com.allubie.nana.data.dao.ScheduleEventDao
-import com.allubie.nana.data.entity.ScheduleEventEntity
-import com.allubie.nana.ui.schedule.EventType
-import com.allubie.nana.ui.schedule.ScheduleEvent
-import com.allubie.nana.utils.DayOfWeek
+import android.content.Context
+import android.util.Log
+import com.allubie.nana.data.dao.ScheduleDao
+import com.allubie.nana.data.entity.Schedule
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import java.util.Calendar
-import java.util.Date
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
-@Singleton
-class ScheduleRepository(private val scheduleEventDao: ScheduleEventDao) {
+class ScheduleRepository(
+    private val scheduleDao: ScheduleDao,
+    private val context: Context? = null
+) {
     
-    val allEvents: Flow<List<ScheduleEvent>> = scheduleEventDao.getAllEvents().map { entities ->
-        entities.map { it.toScheduleEvent() }
-    }
+    fun getAllSchedules(): Flow<List<Schedule>> = scheduleDao.getAllSchedules()
     
-    fun getEventsForDate(date: Date): Flow<List<ScheduleEvent>> {
-        val calendar = Calendar.getInstance().apply { time = date }
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val startMillis = calendar.timeInMillis
+    suspend fun getScheduleById(id: Long): Schedule? = scheduleDao.getScheduleById(id)
+    
+    fun getSchedulesByDate(date: String): Flow<List<Schedule>> = scheduleDao.getSchedulesForDate(date)
+    
+    suspend fun insertSchedule(schedule: Schedule): Long {
+        val now = Clock.System.now().toString() // Use ISO instant format
+        val scheduleId = scheduleDao.insertSchedule(schedule.copy(createdAt = now, updatedAt = now))
         
-        calendar.set(Calendar.HOUR_OF_DAY, 23)
-        calendar.set(Calendar.MINUTE, 59)
-        calendar.set(Calendar.SECOND, 59)
-        calendar.set(Calendar.MILLISECOND, 999)
-        val endMillis = calendar.timeInMillis
-        
-        return scheduleEventDao.getEventsInDateRange(startMillis, endMillis).map { entities ->
-            entities.map { it.toScheduleEvent() }
-        }
-    }
-    
-    suspend fun insertEvent(event: ScheduleEvent) {
-        scheduleEventDao.insertEvent(event.toEntity())
-    }
-    
-    suspend fun updateEvent(event: ScheduleEvent) {
-        scheduleEventDao.updateEvent(event.toEntity())
-    }
-    
-    suspend fun deleteEvent(event: ScheduleEvent) {
-        scheduleEventDao.deleteEvent(event.toEntity())
-    }
-    
-    // Conversion methods
-    private fun ScheduleEvent.toEntity(): ScheduleEventEntity {
-        return ScheduleEventEntity(
-            id = id,
-            title = title,
-            dateMillis = date.time,
-            startTime = startTime,
-            endTime = endTime,
-            location = location,
-            description = description,
-            typeName = type.name,
-            isRecurring = isRecurring,
-            recurringDays = recurringDays.joinToString(",") { it.name }
-        )
-    }
-    
-    private fun ScheduleEventEntity.toScheduleEvent(): ScheduleEvent {
-        val eventType = try { EventType.valueOf(typeName) } catch (e: Exception) { EventType.CLASS }
-        val days = if (recurringDays.isNotEmpty()) {
-            recurringDays.split(",").mapNotNull { dayName ->
-                try { DayOfWeek.valueOf(dayName) } catch (e: Exception) { null }
+        // Schedule notification if reminder is enabled and context is available
+        if (schedule.reminderEnabled && context != null) {
+            try {
+                Log.d("ScheduleRepository", "Scheduling notification for schedule: ${schedule.title}")
+                Log.d("ScheduleRepository", "Schedule details - startDateTime: ${schedule.startDateTime}, reminderMinutes: ${schedule.reminderMinutesBefore}")
+                
+                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
+                val constructor = schedulerClass.getConstructor(Context::class.java)
+                val notificationScheduler = constructor.newInstance(context)
+                
+                val scheduleWithId = schedule.copy(id = scheduleId, createdAt = now, updatedAt = now)
+                
+                val method = schedulerClass.getMethod("scheduleNotificationForSchedule", Schedule::class.java)
+                method.invoke(notificationScheduler, scheduleWithId)
+                Log.d("ScheduleRepository", "Notification scheduling completed")
+            } catch (e: Exception) {
+                Log.e("ScheduleRepository", "Error scheduling notification", e)
             }
         } else {
-            emptyList()
+            Log.d("ScheduleRepository", "Notification not scheduled - reminderEnabled: ${schedule.reminderEnabled}, context available: ${context != null}")
         }
         
-        return ScheduleEvent(
-            id = id,
-            title = title,
-            date = Date(dateMillis),
-            startTime = startTime,
-            endTime = endTime,
-            location = location,
-            description = description,
-            type = eventType,
-            isRecurring = isRecurring,
-            recurringDays = days
-        )
+        return scheduleId
     }
+    
+    suspend fun updateSchedule(schedule: Schedule) {
+        val now = Clock.System.now().toString() // Use ISO instant format
+        val updatedSchedule = schedule.copy(updatedAt = now)
+        scheduleDao.updateSchedule(updatedSchedule)
+        
+        // Handle notifications if context is available
+        if (context != null) {
+            try {
+                Log.d("ScheduleRepository", "Updating notification for schedule: ${schedule.title}")
+                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
+                val constructor = schedulerClass.getConstructor(Context::class.java)
+                val notificationScheduler = constructor.newInstance(context)
+                
+                // Cancel old notification first
+                val cancelMethod = schedulerClass.getMethod("cancelScheduleNotification", Long::class.javaPrimitiveType)
+                cancelMethod.invoke(notificationScheduler, schedule.id)
+                
+                // Schedule new notification if reminder is enabled and not completed
+                if (updatedSchedule.reminderEnabled && !updatedSchedule.isCompleted) {
+                    val scheduleMethod = schedulerClass.getMethod("scheduleNotificationForSchedule", Schedule::class.java)
+                    scheduleMethod.invoke(notificationScheduler, updatedSchedule)
+                    Log.d("ScheduleRepository", "Notification rescheduled")
+                } else {
+                    Log.d("ScheduleRepository", "Notification not rescheduled - reminderEnabled: ${updatedSchedule.reminderEnabled}, completed: ${updatedSchedule.isCompleted}")
+                }
+            } catch (e: Exception) {
+                Log.e("ScheduleRepository", "Error updating notification", e)
+            }
+        }
+    }
+    
+    suspend fun deleteSchedule(schedule: Schedule) {
+        scheduleDao.deleteSchedule(schedule)
+        
+        // Cancel notification if context is available
+        if (context != null) {
+            try {
+                Log.d("ScheduleRepository", "Cancelling notification for schedule: ${schedule.title}")
+                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
+                val constructor = schedulerClass.getConstructor(Context::class.java)
+                val notificationScheduler = constructor.newInstance(context)
+                
+                val cancelMethod = schedulerClass.getMethod("cancelScheduleNotification", Long::class.javaPrimitiveType)
+                cancelMethod.invoke(notificationScheduler, schedule.id)
+                Log.d("ScheduleRepository", "Notification cancelled")
+            } catch (e: Exception) {
+                Log.e("ScheduleRepository", "Error cancelling notification", e)
+            }
+        }
+    }
+    
+    suspend fun toggleCompletionStatus(id: Long, isCompleted: Boolean) = scheduleDao.updateCompletionStatus(id, isCompleted)
+    
+    suspend fun togglePinStatus(id: Long, isPinned: Boolean) = scheduleDao.updatePinStatus(id, isPinned)
+
+    suspend fun getAllSchedulesForExport(): List<Schedule> = scheduleDao.getAllSchedulesSync()
+    
+    suspend fun deleteAllSchedules() = scheduleDao.deleteAllSchedules()
+    
+    suspend fun getSchedulesWithReminders(): List<Schedule> = scheduleDao.getSchedulesWithReminders()
 }
