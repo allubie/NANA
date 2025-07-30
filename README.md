@@ -13,7 +13,7 @@
 * AMOLED dark theme (true black backgrounds for battery efficiency).
 * Used material-design-icons.
 
-  ## 📱 Screenshots
+###  Screenshots
 
 <div align="center">
 <div>
