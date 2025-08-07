@@ -1,88 +1,110 @@
-<div align="center">
+# NANA - Student Management App
 
-<img width="" src="fastlane/metadata/android/en-US/images/icon.png"  width=160 height=160  align="center">
+NANA is a minimal Android application designed specifically for students to manage their academic and personal lives through four main functionalities: Notes, Routines, Schedules, and Expense tracking.
 
-# Not Another Notes App
-
-### An Android App That Does More And Takes Notes
-</div>
-
-### General UI
-
-* Material You (Material Design 3) adaptive theming.
-* AMOLED dark theme (true black backgrounds for battery efficiency).
-* Used material-design-icons.
-
-###  Screenshots
-
-<div align="center">
-<div>
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width="30%" />
-</div>
-</div>
-
-<br>
-
-### Navigation Structure
-
-* **Bottom navigation bar** with four main sections:
-    * Notes
-    * Routines
-    * Schedules
-    * Expenses
-
----
+## Features
 
 ### Notes
-
-
-
-
-* Rich Text Editing
-* Media Support
-* Search functionality.
-* Note categories/labels.
-* Archive for temporarily hiding notes.
-* Recycle bin for recovering deleted notes.
+- Create, edit, and organize notes
+- Pin important notes
+- Rich text editing support
+- Search functionality
+- Categories and labels
+- Archive and recycle bin
 
 ### Routines
-
-
-* Create daily or weekly routines.
-* Configurable reminders for routines.
-* Notification feedback for completion.
-* Progress tracking for routine completion.
-* Daily/weekly statistics.
+- Create daily/weekly routines
+- Track completion progress
+- Habit tracking integration
+- Configurable reminders
+- Progress statistics
 
 ### Schedules
-* Create time-based schedules/events.
-* Pin/unpin important schedule items.
-* Calendar view (daily, weekly, monthly).
-* Configurable alerts before scheduled events.
-* Recurring schedule support.
-  
+- Time-based schedule management
+- Calendar views (daily, weekly, monthly)
+- Class schedule templates
+- Conflict detection
+- Recurring events support
+
 ### Expenses
+- Track expenses with categories
+- Budget management
+- Monthly summaries
+- Customizable expense categories
+- Visual spending analytics
 
-* Track individual expenses with amount, date, and description
-* Categorize expenses with customizable categories
-* Monthly summary view
-* Budget Management
-* Track spending against budget
-* Alerts for approaching budget limits
-  
----
+## Technical Specifications
 
-## Technical Implementation
+- **Platform**: Android
+- **Minimum API Level**: 24 (Android 7.0 Nougat)
+- **Target API Level**: 34
+- **Development**: Kotlin + Jetpack Compose
+- **Architecture**: MVVM with Room database
+- **UI Framework**: Material You design system
 
-* **Architecture Components**: Use of **ViewModel** and **LiveData** for UI data management.
-* **Room database** for persistent storage.
-* **WorkManager** for background tasks and scheduled operations.
-* **DataStore** for preferences storage.
-* **Navigation component** for in-app navigation.
+## UI Features
+
+- Material You adaptive theming
+- AMOLED dark theme support
+- Smooth animations and transitions
+- Bottom navigation with 4 main sections
+- Overflow menu for settings and additional features
+
+## Project Structure
+
+```
+app/
+├── src/main/java/com/allubie/nana/
+│   ├── MainActivity.kt
+│   └── ui/
+│       ├── navigation/
+│       │   └── MainNavigation.kt
+│       ├── screens/
+│       │   ├── notes/
+│       │   ├── routines/
+│       │   ├── schedules/
+│       │   ├── expenses/
+│       │   └── settings/
+│       └── theme/
+│           ├── Color.kt
+│           ├── Theme.kt
+│           └── Type.kt
+└── src/main/res/
+    ├── values/
+    ├── drawable/
+    └── mipmap/
+```
+
+## Building the Project
+
+1. Clone the repository
+2. Open in Android Studio
+3. Sync project with Gradle files
+4. Run on device or emulator
+
+```bash
+./gradlew build
+```
+
+## Development Status
+
+This project contains the complete UI implementation with:
+-  Modern Material You design
+-  Bottom navigation
+-  All four main screens (Notes, Routines, Schedules, Expenses)
+-  Settings screen
+-  Responsive layout components
+-  Sample data for demonstration
+
+## Next Steps
+
+- Implement Room database for data persistence
+- Add view models and state management
+- Implement actual functionality for CRUD operations
+- Add notification system
+- Implement backup/restore features
+- Add user preferences and settings persistence
+
+## Developer
+
+Created by allubie as part of the NANA student management application project.

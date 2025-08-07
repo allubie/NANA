@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- NANA App Colors -->
+    <color name="nana_primary">#6750A4</color>
+    <color name="nana_secondary">#625B71</color>
+    <color name="nana_tertiary">#7D5260</color>
+    
+    <!-- Category Colors -->
+    <color name="category_food">#FF6B6B</color>
+    <color name="category_education">#4ECDC4</color>
+    <color name="category_transport">#45B7D1</color>
+    <color name="category_shopping">#96CEB4</color>
+    <color name="category_work">#FFA726</color>
+    <color name="category_personal">#AB47BC</color>
+    <color name="category_study">#66BB6A</color>
 </resources>

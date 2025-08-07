@@ -1,124 +1,103 @@
 package com.allubie.nana.data.repository
 
-import android.content.Context
-import android.util.Log
 import com.allubie.nana.data.dao.RoutineDao
-import com.allubie.nana.data.entity.Routine
+import com.allubie.nana.data.entity.RoutineEntity
+import com.allubie.nana.data.entity.RoutineCompletionEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.plus
+import kotlinx.datetime.minus
+import java.util.UUID
 
-class RoutineRepository(
-    private val routineDao: RoutineDao,
-    private val context: Context? = null
-) {
+class RoutineRepository(private val routineDao: RoutineDao) {
     
-    fun getAllRoutines(): Flow<List<Routine>> = routineDao.getAllActiveRoutines()
+    fun getActiveRoutines(): Flow<List<RoutineEntity>> = routineDao.getActiveRoutinesFlow()
     
-    suspend fun getRoutineById(id: Long): Routine? = routineDao.getRoutineById(id)
+    suspend fun getRoutineById(id: String): RoutineEntity? = routineDao.getRoutineById(id)
     
-    suspend fun insertRoutine(routine: Routine): Long {
-        val now = Clock.System.now().toString() // Use ISO instant format
-        val routineId = routineDao.insertRoutine(routine.copy(createdAt = now))
-        
-        // Schedule notification if reminder is enabled and context is available
-        if (routine.reminderEnabled && routine.isActive && context != null) {
-            try {
-                // Create the scheduler class directly to avoid import issues
-                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
-                val constructor = schedulerClass.getConstructor(Context::class.java)
-                val notificationScheduler = constructor.newInstance(context)
-                
-                val routineWithId = routine.copy(id = routineId, createdAt = now)
-                val method = schedulerClass.getMethod("scheduleNotificationForRoutine", Routine::class.java)
-                method.invoke(notificationScheduler, routineWithId)
-            } catch (e: Exception) {
-                Log.e("RoutineRepository", "Error scheduling notification", e)
-            }
-        }
-        
-        return routineId
+    suspend fun insertRoutine(routine: RoutineEntity) = routineDao.insertRoutine(routine)
+    
+    suspend fun updateRoutine(routine: RoutineEntity) = routineDao.updateRoutine(routine)
+    
+    suspend fun deleteRoutine(routine: RoutineEntity) = routineDao.deleteRoutine(routine)
+    
+    suspend fun pinRoutine(id: String) = routineDao.setPinned(id, true)
+    
+    suspend fun unpinRoutine(id: String) = routineDao.setPinned(id, false)
+    
+    suspend fun isCompletedToday(routineId: String): Boolean {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        return routineDao.getCompletionForDate(routineId, today) != null
     }
     
-    suspend fun updateRoutine(routine: Routine) {
-        routineDao.updateRoutine(routine)
-        
-        // Handle notifications if context is available
-        if (context != null) {
-            try {
-                // Create the scheduler class directly to avoid import issues
-                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
-                val constructor = schedulerClass.getConstructor(Context::class.java)
-                val notificationScheduler = constructor.newInstance(context)
-                
-                // Cancel old notification first
-                val cancelMethod = schedulerClass.getMethod("cancelRoutineNotification", Long::class.javaPrimitiveType)
-                cancelMethod.invoke(notificationScheduler, routine.id)
-                
-                // Schedule new notification if reminder is enabled and routine is active
-                if (routine.reminderEnabled && routine.isActive) {
-                    val scheduleMethod = schedulerClass.getMethod("scheduleNotificationForRoutine", Routine::class.java)
-                    scheduleMethod.invoke(notificationScheduler, routine)
-                }
-            } catch (e: Exception) {
-                Log.e("RoutineRepository", "Error updating notification", e)
-            }
+    suspend fun toggleCompletion(routineId: String, date: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())) {
+        val existingCompletion = routineDao.getCompletionForDate(routineId, date)
+        if (existingCompletion != null) {
+            routineDao.deleteCompletion(existingCompletion)
+        } else {
+            val completion = RoutineCompletionEntity(
+                id = UUID.randomUUID().toString(),
+                routineId = routineId,
+                completionDate = date
+            )
+            routineDao.insertCompletion(completion)
         }
     }
     
-    suspend fun deleteRoutine(routine: Routine) {
-        routineDao.deleteRoutine(routine)
-        
-        // Cancel notification if context is available
-        if (context != null) {
-            try {
-                // Create the scheduler class directly to avoid import issues
-                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
-                val constructor = schedulerClass.getConstructor(Context::class.java)
-                val notificationScheduler = constructor.newInstance(context)
-                
-                val cancelMethod = schedulerClass.getMethod("cancelRoutineNotification", Long::class.javaPrimitiveType)
-                cancelMethod.invoke(notificationScheduler, routine.id)
-            } catch (e: Exception) {
-                Log.e("RoutineRepository", "Error cancelling notification", e)
+    suspend fun getCompletionsForDate(date: LocalDate): List<RoutineCompletionEntity> {
+        return routineDao.getCompletionsForDate(date)
+    }
+    
+    suspend fun getStreakCount(routineId: String): Int {
+        return try {
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            val completions = routineDao.getCompletionsForRoutine(routineId)
+            var streak = 0
+            var currentDate = today
+            
+            while (completions.any { it.completionDate == currentDate }) {
+                streak++
+                currentDate = currentDate.minus(DatePeriod(days = 1))
             }
+            
+            streak
+        } catch (e: Exception) {
+            0
         }
     }
     
-    suspend fun toggleCompletionStatus(id: Long, isCompleted: Boolean) {
-        val completedAt = if (isCompleted) {
-            Clock.System.now().toString() // Use ISO instant format
-        } else null
-        routineDao.updateCompletionStatus(id, isCompleted, completedAt)
-    }
-    
-    suspend fun togglePin(id: Long, isPinned: Boolean) {
-        routineDao.updatePinStatus(id, isPinned)
-    }
-    
-    suspend fun sendCompletionFeedback(routineTitle: String) {
-        if (context != null) {
-            try {
-                // Create the scheduler class directly to avoid import issues
-                val schedulerClass = Class.forName("com.allubie.nana.utils.NotificationScheduler")
-                val constructor = schedulerClass.getConstructor(Context::class.java)
-                val notificationScheduler = constructor.newInstance(context)
-                
-                // TODO: Calculate streak count from database
-                val streakCount = 1 // For now, just use 1
-                
-                val method = schedulerClass.getMethod("sendRoutineCompletionNotification", String::class.java, Int::class.javaPrimitiveType)
-                method.invoke(notificationScheduler, routineTitle, streakCount)
-            } catch (e: Exception) {
-                Log.e("RoutineRepository", "Error sending completion feedback", e)
-            }
+    suspend fun getCompletionRate(routineId: String, days: Int = 30): Float {
+        return try {
+            val endDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            val startDate = endDate.minus(DatePeriod(days = days))
+            
+            val completions = routineDao.getCompletionsForRoutine(routineId)
+            val completedDays = completions.count { it.completionDate >= startDate && it.completionDate <= endDate }
+            
+            if (days > 0) completedDays.toFloat() / days.toFloat() else 0f
+        } catch (e: Exception) {
+            0f
         }
     }
-
-    suspend fun getAllRoutinesForExport(): List<Routine> = routineDao.getAllRoutines()
     
-    suspend fun deleteAllRoutines() = routineDao.deleteAllRoutines()
-    
-    suspend fun getRoutinesWithReminders(): List<Routine> = routineDao.getRoutinesWithReminders()
+    suspend fun createRoutine(
+        title: String, 
+        description: String, 
+        frequency: String, 
+        reminderTime: String? = null
+    ): RoutineEntity {
+        val routine = RoutineEntity(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            description = description,
+            frequency = frequency,
+            reminderTime = reminderTime
+        )
+        insertRoutine(routine)
+        return routine
+    }
 }

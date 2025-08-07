@@ -1,54 +1,46 @@
 package com.allubie.nana.data.dao
 
 import androidx.room.*
-import com.allubie.nana.data.entity.Schedule
+import com.allubie.nana.data.entity.ScheduleEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 
 @Dao
 interface ScheduleDao {
     
-    @Query("SELECT * FROM schedules ORDER BY isPinned DESC, startDateTime ASC")
-    fun getAllSchedules(): Flow<List<Schedule>>
+    @Query("SELECT * FROM schedules ORDER BY date DESC, startTime ASC")
+    fun getAllSchedulesFlow(): Flow<List<ScheduleEntity>>
     
-    @Query("SELECT * FROM schedules ORDER BY isPinned DESC, startDateTime ASC")
-    suspend fun getAllSchedulesSync(): List<Schedule>
+    @Query("SELECT * FROM schedules WHERE date = :date ORDER BY startTime ASC")
+    suspend fun getSchedulesForDate(date: LocalDate): List<ScheduleEntity>
+    
+    @Query("SELECT * FROM schedules WHERE date = :date ORDER BY startTime ASC")
+    fun getSchedulesForDateFlow(date: LocalDate): Flow<List<ScheduleEntity>>
+    
+    @Query("SELECT * FROM schedules WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC, startTime ASC")
+    fun getSchedulesInRangeFlow(startDate: LocalDate, endDate: LocalDate): Flow<List<ScheduleEntity>>
     
     @Query("SELECT * FROM schedules WHERE id = :id")
-    suspend fun getScheduleById(id: Long): Schedule?
+    suspend fun getScheduleById(id: String): ScheduleEntity?
     
-    @Query("SELECT * FROM schedules WHERE DATE(startDateTime) = :date ORDER BY startDateTime ASC")
-    fun getSchedulesForDate(date: String): Flow<List<Schedule>>
+    @Query("SELECT * FROM schedules WHERE title LIKE '%' || :searchQuery || '%' OR description LIKE '%' || :searchQuery || '%' ORDER BY date DESC, startTime ASC")
+    fun searchSchedulesFlow(searchQuery: String): Flow<List<ScheduleEntity>>
     
-    @Query("SELECT * FROM schedules WHERE startDateTime >= :start AND startDateTime <= :end ORDER BY startDateTime ASC")
-    fun getSchedulesInDateRange(start: String, end: String): Flow<List<Schedule>>
-    
-    @Query("SELECT * FROM schedules WHERE category = :category")
-    fun getSchedulesByCategory(category: String): Flow<List<Schedule>>
-    
-    @Query("SELECT * FROM schedules WHERE isCompleted = 0 AND startDateTime >= datetime('now')")
-    fun getUpcomingSchedules(): Flow<List<Schedule>>
-    
-    @Insert
-    suspend fun insertSchedule(schedule: Schedule): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSchedule(schedule: ScheduleEntity)
     
     @Update
-    suspend fun updateSchedule(schedule: Schedule)
+    suspend fun updateSchedule(schedule: ScheduleEntity)
     
     @Delete
-    suspend fun deleteSchedule(schedule: Schedule)
+    suspend fun deleteSchedule(schedule: ScheduleEntity)
     
-    @Query("UPDATE schedules SET isPinned = :isPinned WHERE id = :id")
-    suspend fun updatePinStatus(id: Long, isPinned: Boolean)
+    @Query("UPDATE schedules SET isCompleted = :completed WHERE id = :id")
+    suspend fun setCompleted(id: String, completed: Boolean)
     
-    @Query("UPDATE schedules SET isCompleted = :isCompleted WHERE id = :id")
-    suspend fun updateCompletionStatus(id: Long, isCompleted: Boolean)
+    @Query("UPDATE schedules SET isPinned = :pinned WHERE id = :id")
+    suspend fun setPinned(id: String, pinned: Boolean)
     
-    @Query("SELECT DISTINCT category FROM schedules WHERE category != ''")
-    fun getAllCategories(): Flow<List<String>>
-    
-    @Query("DELETE FROM schedules")
-    suspend fun deleteAllSchedules()
-    
-    @Query("SELECT * FROM schedules WHERE reminderEnabled = 1 AND isCompleted = 0 AND startDateTime > datetime('now')")
-    suspend fun getSchedulesWithReminders(): List<Schedule>
+    @Query("SELECT * FROM schedules WHERE date = :date AND isCompleted = 0 ORDER BY startTime ASC LIMIT 1")
+    suspend fun getNextIncompleteScheduleForDate(date: LocalDate): ScheduleEntity?
 }

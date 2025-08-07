@@ -1,60 +1,51 @@
 package com.allubie.nana.data.dao
 
 import androidx.room.*
-import com.allubie.nana.data.entity.Note
+import com.allubie.nana.data.entity.NoteEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
     
+    @Query("SELECT * FROM notes WHERE isDeleted = 0 ORDER BY isPinned DESC, updatedAt DESC")
+    fun getAllNotesFlow(): Flow<List<NoteEntity>>
+    
     @Query("SELECT * FROM notes WHERE isDeleted = 0 AND isArchived = 0 ORDER BY isPinned DESC, updatedAt DESC")
-    fun getAllActiveNotes(): Flow<List<Note>>
+    fun getActiveNotesFlow(): Flow<List<NoteEntity>>
     
     @Query("SELECT * FROM notes WHERE isDeleted = 0 AND isArchived = 1 ORDER BY updatedAt DESC")
-    fun getArchivedNotes(): Flow<List<Note>>
+    fun getArchivedNotesFlow(): Flow<List<NoteEntity>>
     
     @Query("SELECT * FROM notes WHERE isDeleted = 1 ORDER BY updatedAt DESC")
-    fun getDeletedNotes(): Flow<List<Note>>
+    fun getDeletedNotesFlow(): Flow<List<NoteEntity>>
     
     @Query("SELECT * FROM notes WHERE id = :id")
-    suspend fun getNoteById(id: Long): Note?
+    suspend fun getNoteById(id: String): NoteEntity?
     
-    @Query("SELECT * FROM notes WHERE (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') AND isDeleted = 0")
-    fun searchNotes(query: String): Flow<List<Note>>
+    @Query("SELECT * FROM notes WHERE (title LIKE '%' || :searchQuery || '%' OR content LIKE '%' || :searchQuery || '%') AND isDeleted = 0 AND isArchived = 0")
+    fun searchNotesFlow(searchQuery: String): Flow<List<NoteEntity>>
     
-    @Query("SELECT * FROM notes WHERE category = :category AND isDeleted = 0 AND isArchived = 0")
-    fun getNotesByCategory(category: String): Flow<List<Note>>
-    
-    @Insert
-    suspend fun insertNote(note: Note): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNote(note: NoteEntity)
     
     @Update
-    suspend fun updateNote(note: Note)
+    suspend fun updateNote(note: NoteEntity)
     
     @Delete
-    suspend fun deleteNote(note: Note)
+    suspend fun deleteNote(note: NoteEntity)
     
-    @Query("UPDATE notes SET isPinned = :isPinned WHERE id = :id")
-    suspend fun updatePinStatus(id: Long, isPinned: Boolean)
+    @Query("UPDATE notes SET isDeleted = 1 WHERE id = :id")
+    suspend fun moveToTrash(id: String)
     
-    @Query("UPDATE notes SET isArchived = :isArchived WHERE id = :id")
-    suspend fun updateArchiveStatus(id: Long, isArchived: Boolean)
+    @Query("UPDATE notes SET isDeleted = 0 WHERE id = :id")
+    suspend fun restoreFromTrash(id: String)
     
-    @Query("UPDATE notes SET isDeleted = :isDeleted WHERE id = :id")
-    suspend fun updateDeleteStatus(id: Long, isDeleted: Boolean)
+    @Query("UPDATE notes SET isArchived = :archived WHERE id = :id")
+    suspend fun setArchived(id: String, archived: Boolean)
+    
+    @Query("UPDATE notes SET isPinned = :pinned WHERE id = :id")
+    suspend fun setPinned(id: String, pinned: Boolean)
     
     @Query("DELETE FROM notes WHERE isDeleted = 1")
-    suspend fun permanentlyDeleteAllDeletedNotes()
-    
-    @Query("DELETE FROM notes WHERE id = :id")
-    suspend fun permanentlyDeleteNote(id: Long)
-    
-    @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
-    suspend fun getAllNotes(): List<Note>
-    
-    @Query("DELETE FROM notes")
-    suspend fun deleteAllNotes()
-    
-    @Query("SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != ''")
-    fun getAllCategories(): Flow<List<String>>
+    suspend fun emptyTrash()
 }

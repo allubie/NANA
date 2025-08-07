@@ -1,54 +1,101 @@
 package com.allubie.nana.data.repository
 
 import com.allubie.nana.data.dao.ExpenseDao
-import com.allubie.nana.data.entity.Expense
-import com.allubie.nana.data.entity.ExpenseCategory
+import com.allubie.nana.data.entity.ExpenseEntity
+import com.allubie.nana.data.entity.ExpenseCategoryEntity
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
+import java.util.UUID
 
 class ExpenseRepository(private val expenseDao: ExpenseDao) {
     
-    fun getAllExpenses(): Flow<List<Expense>> = expenseDao.getAllExpenses()
+    fun getAllExpenses(): Flow<List<ExpenseEntity>> = expenseDao.getAllExpensesFlow()
     
-    suspend fun getExpenseById(id: Long): Expense? = expenseDao.getExpenseById(id)
+    fun getExpensesInRange(startDate: LocalDate, endDate: LocalDate): Flow<List<ExpenseEntity>> = 
+        expenseDao.getExpensesInRangeFlow(startDate, endDate)
     
-    fun getExpensesByCategory(category: String): Flow<List<Expense>> = expenseDao.getExpensesByCategory(category)
+    fun getExpensesByCategory(category: String): Flow<List<ExpenseEntity>> = 
+        expenseDao.getExpensesByCategoryFlow(category)
     
-    fun getExpensesByDateRange(startDate: String, endDate: String): Flow<List<Expense>> = 
-        expenseDao.getExpensesInDateRange(startDate, endDate)
+    fun getAllCategories(): Flow<List<ExpenseCategoryEntity>> = expenseDao.getAllCategoriesFlow()
     
-    fun getAllCategories(): Flow<List<String>> = expenseDao.getAllCategories().map { categories ->
-        categories.map { it.name }
+    suspend fun getExpenseById(id: String): ExpenseEntity? = expenseDao.getExpenseById(id)
+    
+    suspend fun insertExpense(expense: ExpenseEntity) = expenseDao.insertExpense(expense)
+    
+    suspend fun updateExpense(expense: ExpenseEntity) = expenseDao.updateExpense(expense)
+    
+    suspend fun deleteExpense(expense: ExpenseEntity) = expenseDao.deleteExpense(expense)
+    
+    suspend fun getTotalExpensesInRange(startDate: LocalDate, endDate: LocalDate): Double {
+        return expenseDao.getTotalExpensesInRange(startDate, endDate) ?: 0.0
     }
     
-    suspend fun getTotalExpenseByCategory(category: String): Double {
-        // Simplified implementation - can be enhanced with proper queries
-        return 0.0
+    suspend fun getTotalExpensesForCategoryInRange(
+        category: String, 
+        startDate: LocalDate, 
+        endDate: LocalDate
+    ): Double {
+        return expenseDao.getTotalExpensesForCategoryInRange(category, startDate, endDate) ?: 0.0
     }
     
-    suspend fun getTotalExpenseInDateRange(startDate: String, endDate: String): Double {
-        // Simplified implementation - can be enhanced with proper queries  
-        return 0.0
+    suspend fun getMonthlyTotal(): Double {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        val startOfMonth = LocalDate(today.year, today.month, 1)
+        return getTotalExpensesInRange(startOfMonth, today)
     }
     
-    suspend fun insertExpense(expense: Expense): Long {
-        val now = Clock.System.now().toString() // Use ISO instant format
-        return expenseDao.insertExpense(expense.copy(createdAt = now, updatedAt = now))
+    suspend fun getMonthlyTotalForCategory(category: String): Double {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        val startOfMonth = LocalDate(today.year, today.month, 1)
+        return getTotalExpensesForCategoryInRange(category, startOfMonth, today)
     }
     
-    suspend fun updateExpense(expense: Expense) {
-        val now = Clock.System.now().toString() // Use ISO instant format
-        expenseDao.updateExpense(expense.copy(updatedAt = now))
+    // Category methods
+    suspend fun getCategoryByName(name: String): ExpenseCategoryEntity? = 
+        expenseDao.getCategoryByName(name)
+    
+    suspend fun insertCategory(category: ExpenseCategoryEntity) = expenseDao.insertCategory(category)
+    
+    suspend fun updateCategory(category: ExpenseCategoryEntity) = expenseDao.updateCategory(category)
+    
+    suspend fun deleteCategory(category: ExpenseCategoryEntity) = expenseDao.deleteCategory(category)
+    
+    suspend fun createExpense(
+        title: String,
+        amount: Double,
+        category: String,
+        date: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
+        description: String? = null
+    ): ExpenseEntity {
+        val expense = ExpenseEntity(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            amount = amount,
+            category = category,
+            date = date,
+            description = description
+        )
+        insertExpense(expense)
+        return expense
     }
     
-    suspend fun deleteExpense(expense: Expense) = expenseDao.deleteExpense(expense)
-    
-    suspend fun getAllExpensesForExport(): List<Expense> = expenseDao.getAllExpensesSync()
-    
-    suspend fun deleteAllExpenses() = expenseDao.deleteAllExpenses()
-    
-    fun getCategories(): Flow<List<ExpenseCategory>> = expenseDao.getAllCategories()
+    suspend fun createCategory(
+        name: String,
+        iconName: String,
+        colorHex: String,
+        monthlyBudget: Double = 0.0
+    ): ExpenseCategoryEntity {
+        val category = ExpenseCategoryEntity(
+            name = name,
+            iconName = iconName,
+            colorHex = colorHex,
+            monthlyBudget = monthlyBudget
+        )
+        insertCategory(category)
+        return category
+    }
 }

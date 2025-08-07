@@ -1,5 +1,6 @@
 package com.allubie.nana.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -8,124 +9,74 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-
-enum class ThemeMode {
-    LIGHT, DARK, AMOLED, MATERIAL_YOU
-}
-
-private val LightColorScheme = lightColorScheme(
-    primary = Primary,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryContainer,
-    onPrimaryContainer = OnPrimaryContainer,
-    secondary = Secondary,
-    onSecondary = OnSecondary,
-    secondaryContainer = SecondaryContainer,
-    onSecondaryContainer = OnSecondaryContainer,
-    tertiary = Tertiary,
-    onTertiary = OnTertiary,
-    tertiaryContainer = TertiaryContainer,
-    onTertiaryContainer = OnTertiaryContainer,
-    background = Background,
-    onBackground = OnBackground,
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-    error = Error,
-    onError = OnError,
-    errorContainer = ErrorContainer,
-    onErrorContainer = OnErrorContainer,
-    outline = Outline,
-    outlineVariant = OutlineVariant
-)
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnPrimaryContainer,
-    secondary = DarkSecondary,
-    onSecondary = DarkOnSecondary,
-    secondaryContainer = DarkSecondaryContainer,
-    onSecondaryContainer = DarkOnSecondaryContainer,
-    tertiary = DarkTertiary,
-    onTertiary = DarkOnTertiary,
-    tertiaryContainer = DarkTertiaryContainer,
-    onTertiaryContainer = DarkOnTertiaryContainer,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    error = DarkError,
-    onError = DarkOnError,
-    errorContainer = DarkErrorContainer,
-    onErrorContainer = DarkOnErrorContainer,
-    outline = DarkOutline,
-    outlineVariant = DarkOutlineVariant
+    primary = Purple80,
+    secondary = PurpleGrey80,
+    tertiary = Pink80
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = Purple40,
+    secondary = PurpleGrey40,
+    tertiary = Pink40
 )
 
 private val AmoledColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnPrimaryContainer,
-    secondary = DarkSecondary,
-    onSecondary = DarkOnSecondary,
-    secondaryContainer = DarkSecondaryContainer,
-    onSecondaryContainer = DarkOnSecondaryContainer,
-    tertiary = DarkTertiary,
-    onTertiary = DarkOnTertiary,
-    tertiaryContainer = DarkTertiaryContainer,
-    onTertiaryContainer = DarkOnTertiaryContainer,
-    background = AmoledBackground,
-    onBackground = DarkOnBackground,
-    surface = AmoledSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = AmoledSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    error = DarkError,
-    onError = DarkOnError,
-    errorContainer = DarkErrorContainer,
-    onErrorContainer = DarkOnErrorContainer,
-    outline = DarkOutline,
-    outlineVariant = DarkOutlineVariant
+    primary = NanaAmoledPrimary,
+    onPrimary = NanaAmoledOnPrimary,
+    secondary = NanaAmoledSecondary,
+    onSecondary = NanaAmoledOnSecondary,
+    tertiary = NanaAmoledSecondary,
+    onTertiary = NanaAmoledOnSecondary,
+    background = NanaAmoledBackground,
+    onBackground = NanaAmoledOnBackground,
+    surface = NanaAmoledSurface,
+    onSurface = NanaAmoledOnSurface,
+    surfaceVariant = NanaAmoledSurfaceVariant,
+    onSurfaceVariant = NanaAmoledOnSurfaceVariant,
+    outline = NanaAmoledOutline,
+    outlineVariant = NanaAmoledOutline,
+    inverseSurface = NanaAmoledOnSurface,
+    inverseOnSurface = NanaAmoledSurface,
+    inversePrimary = NanaAmoledSurface
 )
 
 @Composable
 fun NANATheme(
-    themeMode: ThemeMode = ThemeMode.LIGHT,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    amoledTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val systemInDarkTheme = isSystemInDarkTheme()
-    val context = LocalContext.current
+    val colorScheme = when {
+        amoledTheme -> AmoledColorScheme
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
     
-    val colorScheme = when (themeMode) {
-        ThemeMode.LIGHT -> {
-            if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dynamicLightColorScheme(context)
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = if (amoledTheme) {
+                Color.Black.toArgb()
             } else {
-                LightColorScheme
+                colorScheme.primary.toArgb()
             }
-        }
-        ThemeMode.DARK -> {
-            if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dynamicDarkColorScheme(context)
-            } else {
-                DarkColorScheme
-            }
-        }
-        ThemeMode.AMOLED -> AmoledColorScheme
-        ThemeMode.MATERIAL_YOU -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (systemInDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            } else {
-                // Fallback to regular themes if Material You isn't available
-                if (systemInDarkTheme) DarkColorScheme else LightColorScheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = when {
+                amoledTheme -> false
+                else -> !darkTheme
             }
         }
     }
