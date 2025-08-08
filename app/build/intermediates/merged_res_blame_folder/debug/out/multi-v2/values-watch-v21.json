@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.allubie.nana.app-mergeDebugResources-70:/values-watch-v21/values-watch-v21.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Istiaque\\.gradle\\caches\\8.11.1\\transforms\\d9b0ddad74fe37f1bde9834f5adcb686\\transformed\\appcompat-1.6.1\\res\\values-watch-v21\\values-watch-v21.xml",
+                    "from": {
+                        "startLines": "2,6,10",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,271,499",
+                        "endLines": "5,9,13",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "266,494,724"
+                    }
+                }
+            ]
+        }
+    ]
+}
